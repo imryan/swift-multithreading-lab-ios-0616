@@ -12,6 +12,8 @@ import CoreImage
 
 class ImageViewController : UIViewController, UIScrollViewDelegate {
     
+    @IBOutlet weak var anitiqueButton: UIBarButtonItem!
+    
     var scrollView: UIScrollView!
     var imageView: UIImageView!
     var activityIndicator: UIActivityIndicatorView!
@@ -19,12 +21,28 @@ class ImageViewController : UIViewController, UIScrollViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupViews()
+        
+        activityIndicator = UIActivityIndicatorView(activityIndicatorStyle: .WhiteLarge)
+        activityIndicator.color = UIColor.cyanColor()
+        activityIndicator.center = view.center
+        
+        view.addSubview(activityIndicator)
     }
     
     @IBAction func antiqueButtonTapped(sender: AnyObject) {
-        filterImage { (result) in
-            result ? print("Image filtering complete") : print("Image filtering did not complete")
-        }
+        let queue = NSOperationQueue()
+        queue.qualityOfService = .UserInitiated
+        
+        NSOperationQueue.mainQueue().addOperationWithBlock({
+            self.anitiqueButton.enabled = false
+            self.activityIndicator.startAnimating()
+            
+            queue.addOperationWithBlock({
+                self.filterImage { (result) in
+                    result ? print("Image filtering complete") : print("Image filtering did not complete")
+                }
+            })
+        })
     }
     
     func filterImage(completion: (Bool) -> ()) {
@@ -60,8 +78,14 @@ class ImageViewController : UIViewController, UIScrollViewDelegate {
                 UIGraphicsEndImageContext()
                 
                 print("Setting final result")
-                self.imageView?.image = finalResult
-                completion(true)
+                
+                NSOperationQueue.mainQueue().addOperationWithBlock({
+                    self.imageView?.image = finalResult
+                    self.activityIndicator.stopAnimating()
+                    self.anitiqueButton.enabled = true
+                    
+                    completion(true)
+                })
             }
         }
     }
